@@ -79,6 +79,7 @@ TEST_CASE("span of bytes")
 
     print(data[0], const_bytes);
 
+
     auto const writable_bytes = std::as_writable_bytes(std::span{ data });
  
     // Change the sign bit that is the MSB (IEEE 754 Floating-Point Standard).
@@ -92,4 +93,37 @@ TEST_CASE("bitset")
     std::bitset<8> bs1{"01010101"};
 
     std::cout << bs1.to_string() << " - " << bs1.to_ulong() << "\n";
+}
+
+
+/////////////////////////////////////////////////////////
+// noexcept as a part of type
+
+void foo()
+{}
+
+void bar() noexcept
+{}
+
+void call(auto f1, auto f2)
+{
+    f1();
+    f2();
+}
+
+TEST_CASE("noexcept")
+{
+    static_assert(!std::is_same_v<decltype(foo), decltype(bar)>);
+
+    void (*ptr_safe)() noexcept{};
+
+    ptr_safe = bar;
+    // ptr = foo; // ERROR
+
+    void (*ptr_unsafe)();
+
+    ptr_unsafe = foo;
+    ptr_unsafe = bar;
+    
+    call(foo, bar);
 }
