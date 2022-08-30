@@ -223,25 +223,38 @@ struct std::tuple_element<2, Person>
 // step 3 - get(Person)
 template <size_t Index>
 decltype(auto) get(const Person& person)
-{}
-
-template <>
-decltype(auto) get<0>(const Person& person)
 {
-    return person.first_name();
+    if constexpr(Index == 0)
+    {
+        return person.first_name();
+    }
+    else if constexpr(Index == 1)
+    {
+        return person.last_name();
+    }
+    else
+    {
+        return person.age();
+    }
 }
 
-template <>
-decltype(auto) get<1>(const Person& person)
-{
-    return person.last_name();
-}
+// template <>
+// decltype(auto) get<0>(const Person& person)
+// {
+//     return person.first_name();
+// }
 
-template <>
-decltype(auto) get<2>(const Person& person)
-{
-    return person.age();
-}
+// template <>
+// decltype(auto) get<1>(const Person& person)
+// {
+//     return person.last_name();
+// }
+
+// template <>
+// decltype(auto) get<2>(const Person& person)
+// {
+//     return person.age();
+// }
 
 
 TEST_CASE("tuple-like protocol")
