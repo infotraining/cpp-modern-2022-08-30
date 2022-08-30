@@ -12,6 +12,7 @@
 #include <tuple>
 #include <utility>
 #include <vector>
+#include <ranges>
 
 using namespace std;
 
@@ -33,7 +34,7 @@ std::tuple<int, int, double> calc_stats(const T& data)
 {
     const auto [min_pos, max_pos] = std::minmax_element(std::ranges::begin(data), std::ranges::end(data));
 
-    double avg = std::accumulate(std::ranges::begin(data), std::ranges::begin(data), 0.0) / std::ranges::size(data);
+    double avg = std::accumulate(std::ranges::begin(data), std::ranges::end(data), 0.0) / std::ranges::size(data);
 
     return std::tuple(*min_pos, *max_pos, avg);
 }
@@ -153,4 +154,114 @@ TEST_CASE("use cases")
             std::cout << index << " - " << *it << "\n";
         }
     }
+}
+
+//////////////////////////////////////////////////////
+// tuple-like protocol
+
+class Person
+{
+    std::string fname_;
+    std::string lname_;
+    int age_;
+public:
+    Person(std::string fn, std::string ln, int age) : fname_{fn}, lname_{ln}, age_{age}
+    {}
+
+    const std::string& first_name() const
+    {
+        return fname_;
+    }
+
+    const std::string& last_name() const
+    {
+        return fname_;
+    }
+
+    std::string& first_name()
+    {
+        return fname_;
+    }
+
+    std::string& last_name()
+    {
+        return fname_;
+    }
+
+    int age() const
+    {
+        return age_;
+    }
+};
+
+// step 1 - std::tuple_size<Person>
+template <>
+struct std::tuple_size<Person>
+{
+    static constexpr size_t value = 3;
+};
+
+// step 2 - std::tuple_element<Person>
+template <>
+struct std::tuple_element<0, Person>
+{
+    using type = std::string;
+};
+
+template <>
+struct std::tuple_element<1, Person>
+{
+    using type = std::string;
+};
+
+template <>
+struct std::tuple_element<2, Person>
+{
+    using type = int;
+};
+
+// step 3 - get(Person)
+template <size_t Index>
+decltype(auto) get(const Person& person)
+{}
+
+template <>
+decltype(auto) get<0>(const Person& person)
+{
+    return person.first_name();
+}
+
+template <>
+decltype(auto) get<1>(const Person& person)
+{
+    return person.last_name();
+}
+
+template <>
+decltype(auto) get<2>(const Person& person)
+{
+    return person.age();
+}
+
+
+TEST_CASE("tuple-like protocol")
+{
+    Person p{"Jan", "Kowalski", 33};
+
+    const auto [first_name, last_name, age] = p;
+}
+
+TEST_CASE("subrange & tuple like protocol")
+{
+    std::vector vec = {1, 2, 3, 4, 5, 6, 7, 8};
+
+    auto slice = std::ranges::subrange(vec.begin() + 1, vec.begin() + 5);
+
+    auto [start, end] = slice;
+
+    for(auto it = start; it != end; ++it)
+    {
+        std::cout << *it << " ";       
+    }
+    std::cout << "\n";
 }
