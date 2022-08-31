@@ -295,6 +295,8 @@ TEST_CASE("forwarding")
     auto ptrs_2 = create_vec(std::move(ptr));
 
     auto cstrings = create_vec("abc");
+
+    std::vector<std::unique_ptr<int>> smart_ptrs = create_vec(std::make_unique<int>(13));
 }
 
 TEST_CASE("emplace")
@@ -334,10 +336,10 @@ namespace InitializerList
         }
 
         Container(size_t size, const T& value)
-            : items_ {new T[lst.size]}
-            , size_ {lst.size}
+            : items_ {new T[size]}
+            , size_ {size}
         {
-            std::fill_n(items, size_, value);
+            std::fill_n(items_, size_, value);
         }
 
         Container(const Container&) = delete;
@@ -367,5 +369,5 @@ TEST_CASE("initializer lists")
     REQUIRE(container_alt.size() == 2);
 
     InitializerList::Container<int> container_other(6, 10);
-    REQUIRE(container_alt.size() == 6);
+    REQUIRE(container_other.size() == 6);
 }
