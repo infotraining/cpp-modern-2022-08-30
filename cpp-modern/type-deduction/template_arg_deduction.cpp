@@ -4,9 +4,9 @@
 #include <iostream>
 #include <map>
 #include <numeric>
+#include <optional>
 #include <string>
 #include <vector>
-#include <optional>
 
 #define MSVC
 
@@ -131,7 +131,7 @@ public:
 
     void push_back(T&& item) // always rvalue ref - no universal reference
     {
-        items_.push_back(std::move(item));  // push_back - make move
+        items_.push_back(std::move(item)); // push_back - make move
     }
 
     template <typename... Ts>
@@ -228,7 +228,6 @@ TEST_CASE("decltype")
     auto result = Cpp11::multiply(1, 3.14);
 }
 
-
 template <typename TContainer>
 decltype(auto) get_nth(TContainer& container, size_t n)
 {
@@ -253,12 +252,11 @@ TEST_CASE("auto vs. decltype auto")
     }
 }
 
-
 template <typename T>
 auto create_vec(T&& value)
 {
     using TValue = std::decay_t<T>;
-    
+
     std::vector<TValue> vec;
 
     // if constexpr (std::is_reference_v<T>)
@@ -299,7 +297,6 @@ TEST_CASE("forwarding")
     auto cstrings = create_vec("abc");
 }
 
-
 TEST_CASE("emplace")
 {
     using namespace std::literals;
@@ -311,8 +308,64 @@ TEST_CASE("emplace")
     auto text = "text"s;
     words.push_back(text); // copy text to vec
 
-    //words.push_back(std::string(10, 'a'));
+    // words.push_back(std::string(10, 'a'));
     words.emplace_back(10, 'a');
 
     std::cout << words.back() << "\n";
+}
+
+//////////////////////////////////////////////
+// initializer list
+
+namespace InitializerList
+{
+    template <typename T>
+    class Container
+    {
+        T* items_;
+        size_t size_;
+
+    public:
+        Container(std::initializer_list<T> lst)
+            : items_ {new T[lst.size()]}
+            , size_ {lst.size()}
+        {
+            std::copy(lst.begin(), lst.end(), items_);
+        }
+
+        Container(size_t size, const T& value)
+            : items_ {new T[lst.size]}
+            , size_ {lst.size}
+        {
+            std::fill_n(items, size_, value);
+        }
+
+        Container(const Container&) = delete;
+        Container& operator=(const Container&) = delete;
+
+        ~Container() noexcept
+        {
+            delete[] items_;
+        }
+
+        size_t size() const 
+        {
+            return size_;
+        }
+    };
+}
+
+TEST_CASE("initializer lists")
+{
+    using namespace std::literals;
+
+    std::vector<std::string> words = {"abc"s, "def"s};
+
+    InitializerList::Container<int> container = {1, 2, 3, 4};
+
+    InitializerList::Container<int> container_alt{6, 10};
+    REQUIRE(container_alt.size() == 2);
+
+    InitializerList::Container<int> container_other(6, 10);
+    REQUIRE(container_alt.size() == 6);
 }
