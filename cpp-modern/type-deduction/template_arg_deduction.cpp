@@ -371,3 +371,38 @@ TEST_CASE("initializer lists")
     InitializerList::Container<int> container_other(6, 10);
     REQUIRE(container_other.size() == 6);
 }
+
+namespace ExplainDiamondOp
+{
+	template <typename T = void>
+	struct Greater
+	{
+		bool operator()(const T& a, const T& b) const
+		{
+			return a > b;
+		}
+	};
+
+	template <>
+	struct Greater<void>
+	{
+		template <typename T1, typename T2>
+		bool operator()(const T1& a, const T2& b) const
+		{
+			return a > b;
+		}
+	};
+}
+
+TEST_CASE("diamond operators")
+{
+	std::vector vec = {543, 2354 ,645, 2, 2, 654, 235, 64, 665};
+
+	std::sort(vec.begin(), vec.end(), std::greater<>{});
+
+	using namespace ExplainDiamondOp;
+
+	std::string s1 = "abc";
+
+	REQUIRE(Greater{}(s1, "ABC"));
+}
