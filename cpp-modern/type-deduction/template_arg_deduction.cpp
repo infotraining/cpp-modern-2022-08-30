@@ -132,7 +132,7 @@ public:
     }
 
     template <typename... Ts>
-    void emplace_back(Ts&&... args)
+    void emplace_back(Ts&&... args) // universal reference - type deduction context
     {
         items_.emplace_back(std::forward<Ts>(args)...);
     }
@@ -149,4 +149,35 @@ TEST_CASE("using container")
     words.push_back(w);
     words.push_back("hello"s);
     words.emplace_back(10, 'a');
+}
+
+TEST_CASE("auto + {}")
+{
+    auto lst = {1, 2, 3};  // std::initializer_list<int>
+
+    SECTION("Before C++17")
+    {
+        int x1 = 10;
+        int x2(10);
+        int x3{10};
+
+        auto a1 = 10; // int
+        auto a2(10);  // int
+        auto a3{10};  // std::initializer_list<int>
+    }
+
+    SECTION("Before C++17")
+    {
+        int x1 = 10;
+        int x2(10);
+        int x3{10};
+
+        auto a1 = 10; // int
+        auto a2(10);  // int
+        auto a3{10};  // int
+        //auto a4{10, 20}; // syntax error
+
+        auto a4 = {1}; // std::initializer_list<int>
+        auto a5 = {1, 2, 3}; // std::initializer_list<int>
+    }
 }
