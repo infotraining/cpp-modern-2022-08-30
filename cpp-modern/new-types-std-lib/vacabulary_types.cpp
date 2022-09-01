@@ -14,6 +14,7 @@
 #include <tuple>
 #include <variant>
 #include <vector>
+#include <atomic>
 
 using namespace std::literals;
 
@@ -209,3 +210,127 @@ public:
             (*monitor)->get_temp();
     }
 };
+
+
+/////////////////////////////////////////////////////////////////
+// std::optional
+
+TEST_CASE("optional")
+{
+	std::optional<int> opt_int;
+	REQUIRE(opt_int.has_value() == false);
+
+	opt_int = 42;
+	REQUIRE(opt_int.has_value() == true);
+	
+	if (opt_int)
+		std::cout << "opt_int has state\n"; 
+
+	opt_int = std::nullopt; // the opt_int.reset();
+	REQUIRE(opt_int.has_value() == false);
+
+	SECTION("CTAD")
+	{
+		std::optional opt_int{42};
+
+		std::optional other_opt_int{opt_int};
+	}
+
+	SECTION("construction in-place")
+	{
+		std::optional<std::atomic<int>> opt_counter{std::in_place, 0};
+	}
+
+	SECTION("using optional")
+	{
+		std::optional opt_int = 42;
+
+		if (opt_int)
+			REQUIRE(*opt_int == 42);
+
+		*opt_int = 665;
+
+		REQUIRE(opt_int.value() == 665);
+
+		opt_int.reset();
+
+		REQUIRE_THROWS_AS(opt_int.value(), std::bad_optional_access);
+	}
+}
+
+std::optional<const char*> maybe_getenv(const char* n)
+{
+    if(const char* env_var = std::getenv(n))
+        return env_var;
+    else
+        return std::nullopt;
+}
+
+TEST_CASE("value_or")
+{
+	std::cout << maybe_getenv("PATHS").value_or("(not found)") << "\n";
+}
+
+TEST_CASE("move semantics - beware")
+{
+	std::optional<std::string> opt_name = "Jan";
+	REQUIRE(opt_name.has_value() == true);
+
+	std::string target_name = std::move(*opt_name);
+	REQUIRE(opt_name.has_value() == true);
+}
+
+TEST_CASE("optional - weird cases")
+{
+	std::optional<bool> flag{false};
+
+	if (!flag) // yields false
+	{		
+	}
+
+	if (flag == false) // yields true
+	{		
+	}
+
+	std::optional<int*> ptr{nullptr};
+
+	if (ptr) // yields true
+	{
+	}
+
+	if (ptr == nullptr) // yields true
+	{
+	}
+}
+
+std::optional<int> to_int(std::string_view str)
+{
+	int value{};
+
+    auto start = str.data();
+    auto end = str.data() + str.size();
+
+    if (const auto [pos_end, error_code] = std::from_chars(start, end, value);
+        error_code != std::errc{} || pos_end != end)
+    {
+        return std::nullopt;
+    }
+
+    return value;
+}
+
+TEST_CASE("to_int")
+{
+	SECTION("happy path")
+	{
+		std::optional<int> number = to_int("42");
+		REQUIRE(number.has_value());
+		REQUIRE(*number == 42);
+	}
+
+	SECTION("sad path")
+	{
+		std::optional<int> number = to_int("42abc");
+		REQUIRE(number.has_value() == false);
+	}
+}
