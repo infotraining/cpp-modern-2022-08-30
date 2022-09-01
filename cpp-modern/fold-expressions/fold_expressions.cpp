@@ -127,7 +127,7 @@ TEST_CASE("Head")
 }
 
 template <typename F, typename... TArgs>
-auto fill_vector(F f, TArgs&&... args)
+auto create_filled_vector(F f, TArgs&&... args)
 {
     using TValue = std::common_type_t<decltype(f(args))...>;
 
@@ -151,7 +151,7 @@ TEST_CASE("Before C++17")
 
     auto square = [](int x) { return x * x;};
 
-    auto squares = fill_vector(square, 1, 2, 3, 4, 5);
+    auto squares = create_filled_vector(square, 1, 2, 3, 4, 5);
 
     REQUIRE(squares == std::vector{1, 4, 9, 16, 25});
 
