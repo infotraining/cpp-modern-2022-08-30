@@ -15,6 +15,7 @@
 #include <variant>
 #include <vector>
 #include <atomic>
+#include <ranges>
 
 using namespace std::literals;
 
@@ -332,5 +333,132 @@ TEST_CASE("to_int")
 	{
 		std::optional<int> number = to_int("42abc");
 		REQUIRE(number.has_value() == false);
+	}
+}
+
+////////////////////////////////////////////////////////////////
+// std::variant
+
+TEST_CASE("---")
+{
+	std::cout << "\n-----------------------------------------\n";
+}
+
+TEST_CASE("std::variant")
+{
+	std::variant<int, double, std::string, std::vector<int>> v1;
+
+	REQUIRE(std::holds_alternative<int>(v1) == true);
+	REQUIRE(std::get<int>(v1) == 0);
+
+	v1 = 3.14;
+	v1 = "text"s;
+	v1 = std::vector{1, 2, 3};
+
+	print(std::get<std::vector<int>>(v1), "v1");	
+
+	REQUIRE_THROWS_AS(std::get<int>(v1), std::bad_variant_access);
+
+	v1 = 665;
+	int* ptr_int = std::get_if<int>(&v1);
+	REQUIRE(ptr_int != nullptr);
+}
+
+struct Value
+{
+	int value;
+
+	Value(int v) : value{v}
+	{}
+};
+
+struct Wrapper
+{
+	int value;
+
+	Wrapper(int v) : value{v}
+	{}
+};
+
+TEST_CASE("monostate")
+{
+	std::variant<std::monostate, Value, Wrapper> v1;  
+
+	REQUIRE(std::holds_alternative<std::monostate>(v1) == true);
+
+	std::variant<std::monostate, Value> opt_value; // std::optional<Value>
+}
+
+TEST_CASE("emplace")
+{
+	std::variant<int, std::string, Value, int> v1;
+
+	v1.emplace<std::string>(10, '*');
+	v1.emplace<0>(42);
+	v1.emplace<3>(665);
+
+	REQUIRE(std::holds_alternative<std::string>(v1) == false);
+	REQUIRE(v1.index() == 3);
+}
+
+// visitor
+struct Printer
+{
+	void operator()(int i) const 
+	{
+		std::cout << "int: " << i << "\n";
+	}
+
+	void operator()(double d) const 
+	{
+		std::cout << "double: " << d << "\n";
+	}
+
+	void operator()(std::ranges::range auto const& v) const
+	{
+		print(v, "Container");
+	}
+};
+
+template <typename... TClosures>
+struct overloaded : TClosures...
+{
+	using TClosures::operator()...;
+};
+
+// C++17
+template <typename... TClosures>
+overloaded(TClosures...) -> overloaded<TClosures...>;
+
+TEST_CASE("visiting variants")
+{
+	std::variant<int, double, std::string, std::vector<int>> v1 = std::vector{1, 2, 3};
+
+	std::visit(Printer{}, v1);
+
+	auto local_printer = overloaded {
+		[](int i) { std::cout << "int: " << i << "\n"; },
+		[](double d) { std::cout << "double: " << d << "\n"; },
+		[](std::ranges::range auto const&  rng) { print(rng, "Container"); }
+	};
+
+	std::visit(local_printer, v1);
+}
+
+struct Lambda_74352376452654
+{
+	Lambda_74352376452654() = default;
+	auto operator()(int a) const { return a * a; }
+};
+
+TEST_CASE("lambda")
+{
+	auto l = [](int a) { return a * a; };
+
+	decltype(l) other_l; // since C++20
+
+	SECTION("is interpreted as")
+	{
+		auto l = Lambda_74352376452654{};
 	}
 }
