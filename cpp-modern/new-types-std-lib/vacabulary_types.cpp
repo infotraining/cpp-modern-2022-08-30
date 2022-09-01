@@ -37,7 +37,7 @@ namespace UndefinedBehavior
 //////////////////////////////////////////
 // string_view
 
-TEST_CASE("string_view") 
+TEST_CASE("string_view")
 {
     std::string_view sv1;
 
@@ -114,29 +114,98 @@ TEST_CASE("NOT a null terminated string")
 
 TEST_CASE("string_view in constexpr")
 {
-	constexpr std::array ids = { "autodesk"sv, "infotraining"sv, "adobe"sv };
+    constexpr std::array ids = {"autodesk"sv, "infotraining"sv, "adobe"sv};
 }
 
 TEST_CASE("conversion from string_view -> string")
 {
-	std::vector<std::string> words;
+    std::vector<std::string> words;
 
-	std::string_view text = "abc";
+    std::string_view text = "abc";
 
-	words.push_back(std::string(text));
+    words.push_back(std::string(text));
 }
 
 TEST_CASE("different orders")
 {
-	std::vector<std::string> names = { "Jan", "Alan", "Dominik", "Ewa", "Anna" };
-	
-	std::ranges::sort(names);
+    std::vector<std::string> names = {"Jan", "Alan", "Dominik", "Ewa", "Anna"};
 
-	print(names, "names ascending");
+    std::ranges::sort(names);
 
-	std::vector<std::string_view> names_by_length(names.begin(), names.end());
-	std::ranges::sort(names_by_length, [](const auto& a, const auto& b) { return a.size() < b.size(); });
+    print(names, "names ascending");
 
-	print(names_by_length, "names by length");
+    std::vector<std::string_view> names_by_length(names.begin(), names.end());
+    std::ranges::sort(names_by_length, [](const auto& a, const auto& b)
+        { return a.size() < b.size(); });
 
+    print(names_by_length, "names by length");
 }
+
+///////////////////////////////////////////////////
+// any
+
+TEST_CASE("std::any")
+{
+    std::any anything;
+
+    REQUIRE(anything.has_value() == false);
+
+    anything = 42;
+    anything = 3.14;
+    anything = "text"s;
+    anything = std::vector {1, 2, 3};
+
+    SECTION("any_cast returning copy")
+    {
+        auto vec = std::any_cast<std::vector<int>>(anything);
+        REQUIRE(vec == std::vector {1, 2, 3});
+
+        REQUIRE_THROWS_AS(std::any_cast<std::string>(anything), std::bad_any_cast);
+    }
+
+    SECTION("any_cast returning pointer")
+    {
+        anything = 3.14;
+
+        double* ptr_pi = std::any_cast<double>(&anything);
+        REQUIRE(ptr_pi != nullptr);
+        *ptr_pi = 3.1415;
+    }
+}
+
+////////////////////////////////////
+// wide interfaces
+
+class Observer
+{
+public:
+    virtual void update(const std::any& sender, const std::string& msg) = 0;
+    virtual ~Observer() = default;
+};
+
+class TempMonitor
+{
+    std::vector<Observer*> observes_;
+public:
+    void notify()
+    {
+        for(const auto& o : observes_)
+            o->update(this, std::to_string(get_temp()));
+    }
+    double get_temp() const
+    {
+        return 23.88;
+    }
+};
+
+class Logger : public Observer
+{
+public:
+    void update(const std::any& sender, const std::string& msg) override
+    {
+        TempMonitor* const* monitor = std::any_cast<TempMonitor*>(&sender);
+        
+		if (monitor)
+            (*monitor)->get_temp();
+    }
+};
