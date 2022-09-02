@@ -404,6 +404,11 @@ TEST_CASE("emplace")
 // visitor
 struct Printer
 {
+	std::string prefix;
+
+	Printer(std::string prefix) : prefix{std::move(prefix)}
+	{}
+
 	void operator()(int i) const 
 	{
 		std::cout << "int: " << i << "\n";
@@ -427,19 +432,25 @@ struct overloaded : TClosures...
 };
 
 // C++17
-template <typename... TClosures>
-overloaded(TClosures...) -> overloaded<TClosures...>;
+// template <typename... TClosures>
+// overloaded(TClosures...) -> overloaded<TClosures...>;
+
 
 TEST_CASE("visiting variants")
 {
 	std::variant<int, double, std::string, std::vector<int>> v1 = std::vector{1, 2, 3};
 
-	std::visit(Printer{}, v1);
+	std::visit(Printer{" * "}, v1);
+
+	std::string_view prefix = " + ";
 
 	auto local_printer = overloaded {
-		[](int i) { std::cout << "int: " << i << "\n"; },
-		[](double d) { std::cout << "double: " << d << "\n"; },
-		[](std::ranges::range auto const&  rng) { print(rng, "Container"); }
+		[prefix](int i) { std::cout << prefix <<  "int: " << i << "\n"; },
+		[prefix](double d) { std::cout << prefix << "double: " << d << "\n"; },
+		[prefix](std::ranges::range auto const&  rng) { 
+			std::cout << prefix;
+			print(rng, "Container"); 
+		}
 	};
 
 	std::visit(local_printer, v1);
